@@ -17,25 +17,44 @@ public class Client
 		_ = ReceiveAsync();
 	}
 
+	/// <summary>
+	/// 本方法已经包含消息封包与定长逻辑!
+	/// </summary>
+	/// <param name="msg">要发送的内容</param>
 	public async Task SendAsync(Message msg)
 	{
-		var data = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(msg));
+		var data = Message.ToFramedMessage(JsonSerializer.Serialize(msg));
 		await _client.GetStream().WriteAsync(data);
 	}
-
+	
 	private async Task ReceiveAsync()
 	{
+		var buffer = new byte[4];
 		var stream = _client.GetStream();
-		var buffer = new byte[1024];
 
-		while (true)
+		try
 		{
-			var bytesRead = await stream.ReadAsync(buffer);
-			if (bytesRead == 0) break;
-			var json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-			Console.WriteLine(json);
-			var msg = JsonSerializer.Deserialize<Message>(json);
-			Console.WriteLine($"[{msg?.Type}] {msg?.PayLoad}");
+			var byteCount = await stream.ReadAsync(buffer);
+                
+			if (byteCount == 0) throw new SocketException();
+			if (!int.TryParse(Encoding.UTF8.GetString(buffer), out var msgLength)) throw new Exception();
+                
+			buffer = new byte[msgLength];
+			byteCount = await stream.ReadAsync(buffer);
+			
+			if (byteCount == 0) throw new SocketException();
+                
+			var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
+            
+			var msg = JsonSerializer.Deserialize<Message>(messageJson);
+			
+			if (msg is not null)
+				Console.WriteLine($"[{msg.Type}] {msg.PayLoad}");
+            
+		}
+		catch (Exception e)
+		{
+			throw new Exception("Error while reading message.", e);
 		}
 	}
 }

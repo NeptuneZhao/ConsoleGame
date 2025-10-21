@@ -38,7 +38,7 @@ public class Server(int port)
     public async Task BroadcastAsync(Message message)
     {
         var messageJson = JsonSerializer.Serialize(message);
-        var messageBytes = Encoding.UTF8.GetBytes(messageJson);
+        var messageBytes = Message.ToFramedMessage(messageJson);
         
         foreach (var stream in _clients.Values.Select(client => client.GetStream()))
             await stream.WriteAsync(messageBytes);
@@ -49,29 +49,55 @@ public class Server(int port)
         if (_clients.TryGetValue(clientId, out var client))
         {
             var messageJson = JsonSerializer.Serialize(message);
-            var messageBytes = Encoding.UTF8.GetBytes(messageJson);
+            var messageBytes = Message.ToFramedMessage(messageJson);
             await client.GetStream().WriteAsync(messageBytes);
+        }
+    }
+    
+    /// <summary>
+    /// 阅读一个包大小的字节流, 别忘了在实现部分添加 null 检查!
+    /// </summary>
+    /// <param name="client">字节流上的客户端</param>
+    /// <returns>反序列化后 Message 类</returns>
+    /// <exception cref="Exception"></exception>
+    /// <seealso cref="Message"/>
+    private static async Task<Message?> ReadAsync(TcpClient client)
+    {
+        var buffer = new byte[4];
+        var stream = client.GetStream();
+
+        try
+        {
+            var byteCount = await stream.ReadAsync(buffer);
+            if (byteCount == 0) return null;
+                
+            if (!int.TryParse(Encoding.UTF8.GetString(buffer), out var msgLength))
+                throw new Exception("Invalid message length header.");
+                
+            buffer = new byte[msgLength];
+            byteCount = await stream.ReadAsync(buffer);
+            if (byteCount == 0) return null;
+                
+            var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
+            
+            return JsonSerializer.Deserialize<Message>(messageJson);
+            
+        }
+        catch (Exception e)
+        {
+            throw new Exception("Error while reading message.", e);
         }
     }
     
     private async Task HandleClientAsync(string clientId, TcpClient client)
     {
-        var stream = client.GetStream();
-        var buffer = new byte[1024];
-        
         try
         {
             while (true)
             {
-                var byteCount = await stream.ReadAsync(buffer);
-                if (byteCount == 0) break;
+                var message = await ReadAsync(client);
+                if (message is null) break;
                 
-                var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
-                var message = JsonSerializer.Deserialize<Message>(messageJson);
-
-                if (message == null) continue;
-                
-                Console.WriteLine($"{clientId} [{message.Type}]: {message.PayLoad}");
                 _game?.OnMessageReceived(clientId, message);
             }
         }
