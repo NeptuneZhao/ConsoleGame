@@ -16,4 +16,14 @@ public class Message
 		var lengthPrefix = BitConverter.GetBytes(buf.Length);
 		return lengthPrefix.Concat(buf).ToArray();
 	}
+
+	public static void WriteColor(Dictionary<string, ConsoleColor> map)
+	{
+		foreach (var pair in map)
+		{
+			Console.ForegroundColor = pair.Value;
+			Console.WriteLine(pair.Key);
+			Console.ResetColor();
+		}
+	}
 }

@@ -6,23 +6,21 @@ namespace GameServer.Game;
 public class GuessNumber(Server server) : IGame
 {
 	private readonly Dictionary<string, string> _players = new(4); // id, name
-	private bool _gameStarted;
-	private int _numberToGuess;
-	private int _turnIndex;
-	
 	private readonly Lock _turnLock = new();
+	
+	private int _numberToGuess;
+	private int _turnIndex = -1;
+	
+	public bool GameStarted { get; private set; }
 
-	public void OnPlayerConnected(string playerId)
-	{
-		Console.WriteLine($"Player {playerId} joined ({_players.Count}/4)");
-	}
-
+	public event EventHandler? GameEnded;
+	
 	private void StartGame()
 	{
 		Thread.Sleep(1000);
-		_gameStarted = true;
+		GameStarted = true;
 		_numberToGuess = new Random().Next(1, 101);
-		Console.WriteLine("Game started.");
+		Console.WriteLine("游戏开始.");
 		Broadcast("System", "游戏开始了! 请猜一个 1 到 100 之间的数字.");
 		PromptNextPlayer();
 	}
@@ -40,8 +38,7 @@ public class GuessNumber(Server server) : IGame
 			currentId = _players.Keys.ElementAt(_turnIndex);
 			currentPlayer = _players[currentId];
 		}
-
-		// TODO: 解决粘包
+		
 		_ = server.BroadcastAsync(new Message { Type = "Turn", PayLoad = $"轮到玩家 {currentPlayer} 猜." });
 		_ = server.SendAsync(currentId, new Message { Type = "Turn", PayLoad = "现在是你的回合, 请输入一个 1 到 100 的整数." });
 	}
@@ -55,19 +52,19 @@ public class GuessNumber(Server server) : IGame
 				_players[playerId] = message.PayLoad;
 			}
 
-			Console.WriteLine($"Player {playerId} logged in as {message.PayLoad}!");
+			Console.WriteLine($"玩家 {message.PayLoad} 加入了游戏! ({_players.Count}/4)!");
 			Broadcast("System", $"玩家 {message.PayLoad} 加入了游戏! ({_players.Count}/4)");
 
 			lock (_turnLock)
 			{
-				if (_players.Count == 4 && !_gameStarted)
+				if (_players.Count == 4 && !GameStarted)
 					StartGame();
 			}
 			
 			return;
 		}
 		
-		if (!_gameStarted || message.Type != "Guess") return;
+		if (!GameStarted || message.Type != "Guess") return;
 
 		string currentId, currentName;
 
@@ -106,7 +103,8 @@ public class GuessNumber(Server server) : IGame
 				Type = "System",
 				PayLoad = $"玩家 {currentName} 猜对了! 正确数字是 {_numberToGuess}."
 			});
-			_gameStarted = false;
+			GameStarted = false;
+			GameEnded?.Invoke(this, EventArgs.Empty);
 		}
 		else
 		{

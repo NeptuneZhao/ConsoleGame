@@ -29,32 +29,22 @@ public class Client
 	
 	private async Task ReceiveAsync()
 	{
-		var buffer = new byte[4];
-		var stream = _client.GetStream();
+		while (true)
+		{
+			var buffer = new byte[4];
+			var stream = _client.GetStream();
+			
+			if (await stream.ReadAsync(buffer) == 0) break;
 
-		try
-		{
-			var byteCount = await stream.ReadAsync(buffer);
-                
-			if (byteCount == 0) throw new SocketException();
-			if (!int.TryParse(Encoding.UTF8.GetString(buffer), out var msgLength)) throw new Exception();
-                
+			var msgLength = BitConverter.ToInt32(buffer);
+
 			buffer = new byte[msgLength];
-			byteCount = await stream.ReadAsync(buffer);
-			
-			if (byteCount == 0) throw new SocketException();
-                
+			var byteCount = await stream.ReadAsync(buffer);
+
 			var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
-            
 			var msg = JsonSerializer.Deserialize<Message>(messageJson);
-			
-			if (msg is not null)
-				Console.WriteLine($"[{msg.Type}] {msg.PayLoad}");
-            
-		}
-		catch (Exception e)
-		{
-			throw new Exception("Error while reading message.", e);
+
+			if (msg is not null) Console.WriteLine($"[{msg.Type}] {msg.PayLoad}");
 		}
 	}
 }

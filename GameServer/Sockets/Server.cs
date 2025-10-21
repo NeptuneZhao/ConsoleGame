@@ -25,14 +25,17 @@ public class Server(int port)
         
         Console.WriteLine($"Listening on {_listener.LocalEndpoint}");
 
-        while (true)
+        while (_clients.Count < 4)
         {
             var client = await _listener.AcceptTcpClientAsync();
             var clientId = Guid.NewGuid().ToString()[..8];
             _clients[clientId] = client;
-            _game?.OnPlayerConnected(clientId);
             _ = HandleClientAsync(clientId, client);
         }
+        
+        var tcs = new TaskCompletionSource();
+        _game!.GameEnded += (_, _) => tcs.SetResult();
+        await tcs.Task;
     }
     
     public async Task BroadcastAsync(Message message)
@@ -65,28 +68,26 @@ public class Server(int port)
     {
         var buffer = new byte[4];
         var stream = client.GetStream();
+        
+        var byteCount = await stream.ReadAsync(buffer);
+        
+        switch (byteCount)
+        { 
+            case 4: break;
+            default: throw new SocketException(0, $"应该读取 4 个字节, 但实际读取了 {byteCount.ToString()} 个字节.");
+        }
 
-        try
-        {
-            var byteCount = await stream.ReadAsync(buffer);
-            if (byteCount == 0) return null;
+        var msgLength = BitConverter.ToInt32(buffer);
                 
-            if (!int.TryParse(Encoding.UTF8.GetString(buffer), out var msgLength))
-                throw new Exception("Invalid message length header.");
-                
-            buffer = new byte[msgLength];
-            byteCount = await stream.ReadAsync(buffer);
-            if (byteCount == 0) return null;
-                
-            var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
+        buffer = new byte[msgLength];
+        byteCount = await stream.ReadAsync(buffer);
+        
+        if (byteCount == 0) return null;
+        if (byteCount != msgLength) throw new SocketException(0, "读取的消息字节数与消息长度头不符.");
+        
+        var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
+        return JsonSerializer.Deserialize<Message>(messageJson);
             
-            return JsonSerializer.Deserialize<Message>(messageJson);
-            
-        }
-        catch (Exception e)
-        {
-            throw new Exception("Error while reading message.", e);
-        }
     }
     
     private async Task HandleClientAsync(string clientId, TcpClient client)
