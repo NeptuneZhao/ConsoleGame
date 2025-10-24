@@ -2,6 +2,7 @@
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
+using GameServer.Game.GuessNumber;
 
 namespace GameServer.Shared;
 
@@ -22,9 +23,9 @@ public class Client(string host, int port, string playerName)
 	/// 本方法已经包含消息封包与定长逻辑!
 	/// </summary>
 	/// <param name="msg">要发送的内容</param>
-	public async Task SendAsync(Message msg)
+	public async Task SendAsync(IMessage msg)
 	{
-		var data = Message.ToFramedMessage(JsonSerializer.Serialize(msg));
+		var data = IMessage.ToFramedMessage(JsonSerializer.Serialize(msg));
 		await _client.GetStream().WriteAsync(data);
 	}
 	
@@ -43,7 +44,7 @@ public class Client(string host, int port, string playerName)
 			var byteCount = await stream.ReadAsync(buffer);
 
 			var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
-			var msg = JsonSerializer.Deserialize<Message>(messageJson);
+			var msg = JsonSerializer.Deserialize<MessageGuess>(messageJson);
 
 			if (msg is not null)
 			{

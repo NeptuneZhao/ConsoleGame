@@ -2,6 +2,8 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using GameServer.Game.GuessNumber;
+using GameServer.Game.Project28Kill;
 
 namespace GameServer.Shared;
 
@@ -12,9 +14,14 @@ public class Server(int port)
 
     private IGame? _game;
 
-    public void SetGame(IGame game)
+    public void SetGame(GameType gameType)
     {
-        _game = game;
+        _game = gameType switch
+        {
+            GameType.GuessNumber => new GuessNumber(this),
+            GameType.Project28Kill => new Project28Kill(this),
+            _ => throw new NotSupportedException("这些游戏还没实现。")
+        };
     }
     
     public async Task StartAsync()
@@ -36,21 +43,21 @@ public class Server(int port)
         await tcs.Task;
     }
     
-    public async Task BroadcastAsync(Message message)
+    public async Task BroadcastAsync(IMessage message)
     {
         var messageJson = JsonSerializer.Serialize(message);
-        var messageBytes = Message.ToFramedMessage(messageJson);
+        var messageBytes = IMessage.ToFramedMessage(messageJson);
         
         foreach (var stream in _clients.Values.Select(client => client.GetStream()))
             await stream.WriteAsync(messageBytes);
     }
     
-    public async Task SendAsync(string clientId, Message message)
+    public async Task SendAsync(string clientId, IMessage messageGuess)
     {
         if (_clients.TryGetValue(clientId, out var client))
         {
-            var messageJson = JsonSerializer.Serialize(message);
-            var messageBytes = Message.ToFramedMessage(messageJson);
+            var messageJson = JsonSerializer.Serialize(messageGuess);
+            var messageBytes = IMessage.ToFramedMessage(messageJson);
             await client.GetStream().WriteAsync(messageBytes);
         }
     }
@@ -61,8 +68,7 @@ public class Server(int port)
     /// <param name="client">字节流上的客户端</param>
     /// <returns>反序列化后 Message 类</returns>
     /// <exception cref="Exception"></exception>
-    /// <seealso cref="Message"/>
-    private static async Task<Message?> ReadAsync(TcpClient client)
+    private static async Task<IMessage?> ReadAsync(TcpClient client)
     {
         var buffer = new byte[4];
         var stream = client.GetStream();
@@ -84,7 +90,7 @@ public class Server(int port)
         if (byteCount != msgLength) throw new SocketException(0, "读取的消息字节数与消息长度头不符.");
         
         var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
-        return JsonSerializer.Deserialize<Message>(messageJson);
+        return JsonSerializer.Deserialize<IMessage?>(messageJson);
             
     }
     
@@ -97,7 +103,7 @@ public class Server(int port)
                 var message = await ReadAsync(client);
                 if (message is null) break;
 
-                if (message.Type == MessageType.Chat)
+                if (message.GetType() == MessageType.Chat)
                 {
                     await BroadcastAsync(message);
                     continue;

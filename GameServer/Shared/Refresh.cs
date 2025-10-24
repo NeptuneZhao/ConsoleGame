@@ -1,13 +1,14 @@
 ﻿using System.Net.NetworkInformation;
 using System.Runtime.Versioning;
+using GameServer.Game.GuessNumber;
 
 namespace GameServer.Shared;
 
 [SupportedOSPlatform("Windows")]
 public class Refresh(string address, string gameName, string playerName)
 {
-	public Queue<Message> ChatLines { get; } = new(1);
-	public Queue<Message> SystemMessages { get; } = new(1);
+	public Queue<MessageGuess> ChatLines { get; } = new(1);
+	public Queue<MessageGuess> SystemMessages { get; } = new(1);
 	
 	public string PlayerId {private get; set; } = string.Empty;
 
@@ -48,7 +49,7 @@ public class Refresh(string address, string gameName, string playerName)
 		// 聊天区
 		if (ChatLines.Count > MaxChatLines) ChatLines.Dequeue();
 		var chatLinesToShow = ChatLines.ToList();
-		if (chatLinesToShow.Count == 0) chatLinesToShow.Add(new Message(MessageType.Chat, "<暂无聊天记录>"));
+		if (chatLinesToShow.Count == 0) chatLinesToShow.Add(new MessageGuess(MessageType.Chat, "<暂无聊天记录>"));
 		foreach (var line in chatLinesToShow)
 		{
 			WriteColor(new Dictionary<string, ConsoleColor>
@@ -62,7 +63,7 @@ public class Refresh(string address, string gameName, string playerName)
 		// 系统提示
 		if (SystemMessages.Count > MaxSystemMessages) SystemMessages.Dequeue();
 		var systemMessagesToShow = SystemMessages.ToList();
-		if (systemMessagesToShow.Count == 0) systemMessagesToShow.Add(new Message(MessageType.System, "<暂无系统消息>"));
+		if (systemMessagesToShow.Count == 0) systemMessagesToShow.Add(new MessageGuess(MessageType.System, "<暂无系统消息>"));
 		foreach (var line in systemMessagesToShow)
 		{
 			WriteColor(new Dictionary<string, ConsoleColor>
