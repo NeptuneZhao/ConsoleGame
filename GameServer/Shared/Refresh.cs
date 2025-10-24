@@ -6,12 +6,12 @@ namespace GameServer.Shared;
 [SupportedOSPlatform("Windows")]
 public class Refresh(string address, string gameName, string playerName)
 {
-	public Queue<string> ChatLines { get; } = new(MaxChatLines);
-	public Queue<Message> SystemMessages { get; } = new(MaxSystemMessages);
+	public Queue<string> ChatLines { get; } = new(1);
+	public Queue<Message> SystemMessages { get; } = new(1);
 	
 	public string PlayerId {private get; set; } = string.Empty;
 
-	private const int MaxChatLines = 8, MaxSystemMessages = 9;
+	private const int MaxChatLines = 10, MaxSystemMessages = 10;
 	
 	public void Render()
 	{
@@ -34,11 +34,21 @@ public class Refresh(string address, string gameName, string playerName)
 			{ "Ping: ", ConsoleColor.White }, { $"{latency}ms\n", latencyColor }
 		}, false); 
 		
-		// 分割线
 		SeparateLine();
 		
-		// 第 3 ~ 10 行为聊天区
+		// 控制台操作提示
+		WriteColor(new Dictionary<string, ConsoleColor>
+		{
+			{ "输入 /chat <消息> 发送聊天消息", ConsoleColor.Gray },
+			{ "输入 /guess <消息> 进行游戏", ConsoleColor.Gray }
+		});
+		
+		SeparateLine();
+		
+		// 聊天区
+		if (ChatLines.Count > MaxChatLines) ChatLines.Dequeue();
 		var chatLinesToShow = ChatLines.ToList();
+		if (chatLinesToShow.Count == 0) chatLinesToShow.Add("<暂无聊天记录>");
 		foreach (var line in chatLinesToShow)
 		{
 			WriteColor(new Dictionary<string, ConsoleColor>
@@ -50,7 +60,9 @@ public class Refresh(string address, string gameName, string playerName)
 		SeparateLine();
 		
 		// 系统提示
+		if (SystemMessages.Count > MaxSystemMessages) SystemMessages.Dequeue();
 		var systemMessagesToShow = SystemMessages.ToList();
+		if (systemMessagesToShow.Count == 0) systemMessagesToShow.Add(new Message(MessageType.System, "<暂无系统消息>"));
 		foreach (var line in systemMessagesToShow)
 		{
 			WriteColor(new Dictionary<string, ConsoleColor>

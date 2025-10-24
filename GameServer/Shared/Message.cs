@@ -5,8 +5,18 @@ namespace GameServer.Shared;
 [Serializable]
 public class Message
 {
+	public Message() { }
+
+	public Message(MessageType type, string payLoad)
+	{
+		Type = type;
+		PayLoad = payLoad;
+	}
+	
     public MessageType Type { get; set; }
     public string PayLoad { get; set; } = string.Empty;
+    
+    public string PlayerName { get; set; } = string.Empty;
 
     public static byte[] ToFramedMessage(string msg)
     {

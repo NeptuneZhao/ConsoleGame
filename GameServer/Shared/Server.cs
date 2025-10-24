@@ -96,7 +96,13 @@ public class Server(int port)
             {
                 var message = await ReadAsync(client);
                 if (message is null) break;
-                
+
+                if (message.Type == MessageType.Chat)
+                {
+                    await BroadcastAsync(message);
+                    continue;
+                }
+
                 _game?.OnMessageReceived(clientId, message);
             }
         }

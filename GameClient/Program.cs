@@ -23,22 +23,34 @@ public static class Program
 		var client = new Client("127.0.0.1", 5000, name);
 		await client.ConnectAsync();
 
-		await client.SendAsync(new Message
-		{
-			Type = MessageType.Login,
-			PayLoad = name
-		});
+		await client.SendAsync(new Message(MessageType.Login, name));
 
 		while (true)
 		{
 			var input = Console.ReadLine();
 			if (string.IsNullOrWhiteSpace(input)) continue;
-
-			await client.SendAsync(new Message
+			if (input.StartsWith('/'))
 			{
-				Type = MessageType.Guess,
-				PayLoad = input.Trim()
-			});
+				await client.SendAsync(ParseCommand(input));
+				continue;
+			}
+			Console.WriteLine("说啥呢? 输入 /chat <消息> 发送聊天消息 或 /guess <消息> 进行游戏。");
 		}
+	}
+	
+	// 客户端消息命令处理方法
+	private static Message ParseCommand(string input)
+	{
+		if (input.StartsWith("/chat "))
+		{
+			var chatMessage = input[6..].Trim();
+			return new Message(MessageType.Chat, chatMessage);
+		}
+
+		if (!input.StartsWith("/guess ")) return new Message(MessageType.System, "未知命令。");
+		
+		var guessMessage = input[7..].Trim();
+		return new Message(MessageType.Guess, guessMessage);
+
 	}
 }
