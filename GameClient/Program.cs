@@ -31,7 +31,7 @@ public static class Program
 			if (string.IsNullOrWhiteSpace(input)) continue;
 			if (input.StartsWith('/'))
 			{
-				await client.SendAsync(ParseCommand(input));
+				await client.SendAsync(ParseCommand(input, name));
 				continue;
 			}
 			Console.WriteLine("说啥呢? 输入 /chat <消息> 发送聊天消息 或 /guess <消息> 进行游戏。");
@@ -39,18 +39,37 @@ public static class Program
 	}
 	
 	// 客户端消息命令处理方法
-	private static Message ParseCommand(string input)
+	private static Message ParseCommand(string input, string playerName)
 	{
-		if (input.StartsWith("/chat "))
-		{
-			var chatMessage = input[6..].Trim();
-			return new Message(MessageType.Chat, chatMessage);
-		}
-
-		if (!input.StartsWith("/guess ")) return new Message(MessageType.System, "未知命令。");
+		var splitInput = input.Split(' ');
+		var command = splitInput[0].ToLower();
 		
-		var guessMessage = input[7..].Trim();
-		return new Message(MessageType.Guess, guessMessage);
-
+		switch (splitInput.Length)
+		{
+			case 0:
+				return new Message(MessageType.System, "无效命令。");
+			case 1:
+				return new Message(MessageType.System, "命令缺少参数。");
+			default:
+				switch (command)
+				{
+					// 处理聊天命令
+					case "/chat":
+					case "/c" when splitInput.Length > 1:
+					{
+						var chatMessage = string.Join(' ', splitInput.Skip(1));
+						return new Message(MessageType.Chat, chatMessage) { PlayerName = playerName };
+					}
+					// 处理猜测命令
+					case "/guess":
+					case "/g" when splitInput.Length > 1:
+					{
+						var guessMessage = string.Join(' ', splitInput.Skip(1));
+						return new Message(MessageType.Guess, guessMessage);
+					}
+					default:
+						return new Message(MessageType.System, "未知命令。");
+				}
+		}
 	}
 }

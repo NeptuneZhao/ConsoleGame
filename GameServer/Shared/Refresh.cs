@@ -6,7 +6,7 @@ namespace GameServer.Shared;
 [SupportedOSPlatform("Windows")]
 public class Refresh(string address, string gameName, string playerName)
 {
-	public Queue<string> ChatLines { get; } = new(1);
+	public Queue<Message> ChatLines { get; } = new(1);
 	public Queue<Message> SystemMessages { get; } = new(1);
 	
 	public string PlayerId {private get; set; } = string.Empty;
@@ -39,8 +39,8 @@ public class Refresh(string address, string gameName, string playerName)
 		// 控制台操作提示
 		WriteColor(new Dictionary<string, ConsoleColor>
 		{
-			{ "输入 /chat <消息> 发送聊天消息", ConsoleColor.Gray },
-			{ "输入 /guess <消息> 进行游戏", ConsoleColor.Gray }
+			{ "输入 /chat 或 /c <消息> 发送聊天消息", ConsoleColor.Gray },
+			{ "输入 /guess 或 /g <消息> 进行游戏", ConsoleColor.Gray }
 		});
 		
 		SeparateLine();
@@ -48,12 +48,12 @@ public class Refresh(string address, string gameName, string playerName)
 		// 聊天区
 		if (ChatLines.Count > MaxChatLines) ChatLines.Dequeue();
 		var chatLinesToShow = ChatLines.ToList();
-		if (chatLinesToShow.Count == 0) chatLinesToShow.Add("<暂无聊天记录>");
+		if (chatLinesToShow.Count == 0) chatLinesToShow.Add(new Message(MessageType.Chat, "<暂无聊天记录>"));
 		foreach (var line in chatLinesToShow)
 		{
 			WriteColor(new Dictionary<string, ConsoleColor>
 			{
-				{ "[Chat] ", ConsoleColor.Gray }, { line + '\n', ConsoleColor.White }
+				{ $"[{line.PlayerName}] ", ConsoleColor.Gray }, { line.PayLoad + '\n', ConsoleColor.White }
 			}, false);
 		}
 		

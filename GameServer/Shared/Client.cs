@@ -50,7 +50,7 @@ public class Client(string host, int port, string playerName)
 				switch (msg.Type)
 				{
 					case MessageType.LoginBack: _console.PlayerId = msg.PayLoad; break;
-					case MessageType.Chat: _console.ChatLines.Enqueue(msg.PayLoad); break;
+					case MessageType.Chat: _console.ChatLines.Enqueue(msg); break;
 					case MessageType.Turn: case MessageType.Guess: case MessageType.Login: case MessageType.System: default:
 						_console.SystemMessages.Enqueue(msg); break;
 				}
