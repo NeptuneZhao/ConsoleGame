@@ -1,7 +1,10 @@
-﻿using GameClient.Shared;
+﻿using System.Runtime.Versioning;
+using GameServer.Shared;
 
 namespace GameClient;
 
+// 注意本 csproj 添加了 GameServer 的引用
+[SupportedOSPlatform("Windows")]
 public static class Program
 {
 	public static async Task Main()
@@ -17,12 +20,12 @@ public static class Program
 			confirmation = Console.ReadLine()?.Trim().ToUpper();
 		}
 
-		var client = new Client();
-		await client.ConnectAsync("127.0.0.1", 5000);
+		var client = new Client("127.0.0.1", 5000, name);
+		await client.ConnectAsync();
 
 		await client.SendAsync(new Message
 		{
-			Type = "Login",
+			Type = MessageType.Login,
 			PayLoad = name
 		});
 
@@ -33,7 +36,7 @@ public static class Program
 
 			await client.SendAsync(new Message
 			{
-				Type = "Guess",
+				Type = MessageType.Guess,
 				PayLoad = input.Trim()
 			});
 		}

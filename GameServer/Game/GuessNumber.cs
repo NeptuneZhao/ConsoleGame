@@ -1,5 +1,4 @@
 ﻿using GameServer.Shared;
-using GameServer.Sockets;
 
 namespace GameServer.Game;
 
@@ -21,7 +20,7 @@ public class GuessNumber(Server server) : IGame
 		GameStarted = true;
 		_numberToGuess = new Random().Next(1, 101);
 		Console.WriteLine("游戏开始.");
-		Broadcast("System", "游戏开始了! 请猜一个 1 到 100 之间的数字.");
+		Broadcast(MessageType.System, "游戏开始了! 请猜一个 1 到 100 之间的数字.");
 		PromptNextPlayer();
 	}
 
@@ -39,13 +38,13 @@ public class GuessNumber(Server server) : IGame
 			currentPlayer = _players[currentId];
 		}
 		
-		_ = server.BroadcastAsync(new Message { Type = "Turn", PayLoad = $"轮到玩家 {currentPlayer} 猜." });
-		_ = server.SendAsync(currentId, new Message { Type = "Turn", PayLoad = "现在是你的回合, 请输入一个 1 到 100 的整数." });
+		_ = server.BroadcastAsync(new Message { Type = MessageType.Turn, PayLoad = $"轮到玩家 {currentPlayer} 猜." });
+		_ = server.SendAsync(currentId, new Message { Type = MessageType.Turn, PayLoad = "现在是你的回合, 请输入一个 1 到 100 的整数." });
 	}
 
 	public void OnMessageReceived(string playerId, Message message)
 	{
-		if (message.Type == "Login")
+		if (message.Type == MessageType.Login)
 		{
 			lock (_turnLock)
 			{
@@ -53,7 +52,12 @@ public class GuessNumber(Server server) : IGame
 			}
 
 			Console.WriteLine($"玩家 {message.PayLoad} 加入了游戏! ({_players.Count}/4)!");
-			Broadcast("System", $"玩家 {message.PayLoad} 加入了游戏! ({_players.Count}/4)");
+			_ = server.SendAsync(playerId, new Message
+			{
+				Type = MessageType.LoginBack,
+				PayLoad = playerId
+			});
+			Broadcast(MessageType.System, $"玩家 {message.PayLoad} 加入了游戏! ({_players.Count}/4)");
 
 			lock (_turnLock)
 			{
@@ -64,7 +68,7 @@ public class GuessNumber(Server server) : IGame
 			return;
 		}
 		
-		if (!GameStarted || message.Type != "Guess") return;
+		if (!GameStarted || message.Type != MessageType.Guess) return;
 
 		string currentId, currentName;
 
@@ -78,7 +82,7 @@ public class GuessNumber(Server server) : IGame
 		{
 			_ = server.SendAsync(playerId, new Message
 			{
-				Type = "System",
+				Type = MessageType.System,
 				PayLoad = "现在不是你的回合, 等一会儿."
 			});
 			return;
@@ -88,7 +92,7 @@ public class GuessNumber(Server server) : IGame
 		{
 			_ = server.SendAsync(playerId, new Message
 			{
-				Type = "System",
+				Type = MessageType.System,
 				PayLoad = "你说的不是整数."
 			});
 			return;
@@ -100,7 +104,7 @@ public class GuessNumber(Server server) : IGame
 		{
 			_ = server.BroadcastAsync(new Message
 			{
-				Type = "System",
+				Type = MessageType.System,
 				PayLoad = $"玩家 {currentName} 猜对了! 正确数字是 {_numberToGuess}."
 			});
 			GameStarted = false;
@@ -111,7 +115,7 @@ public class GuessNumber(Server server) : IGame
 			var hint = number > _numberToGuess ? "太大了" : "太小了";
 			_ = server.BroadcastAsync(new Message
 			{
-				Type = "System",
+				Type = MessageType.System,
 				PayLoad = $"玩家 {currentName} 猜的数字 {number} {hint}."
 			});
 			
@@ -124,7 +128,7 @@ public class GuessNumber(Server server) : IGame
 		
 	}
 
-	private void Broadcast(string type, string payLoad)
+	private void Broadcast(MessageType type, string payLoad)
 	{
 		_ = server.BroadcastAsync(new Message { Type = type, PayLoad = payLoad });
 	}

@@ -1,5 +1,5 @@
 ﻿using GameServer.Game;
-using GameServer.Sockets;
+using GameServer.Shared;
 
 namespace GameServer;
 

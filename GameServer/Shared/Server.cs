@@ -1,11 +1,9 @@
 ﻿using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using System.Net.Sockets;
 
-using GameServer.Shared;
-
-namespace GameServer.Sockets;
+namespace GameServer.Shared;
 
 public class Server(int port)
 {
