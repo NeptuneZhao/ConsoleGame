@@ -2,8 +2,7 @@
 using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
-
-using GameServer.Game.Project28Kill;
+using GameServer.Game;
 
 namespace GameServer.Shared;
 
@@ -24,9 +23,9 @@ public class Client(string host, int port, string playerName)
 	/// 本方法已经包含消息封包与定长逻辑!
 	/// </summary>
 	/// <param name="msg">要发送的内容</param>
-	public async Task SendAsync(Message28Kill msg)
+	public async Task SendAsync(Message msg)
 	{
-		var data = Message28Kill.ToFramedMessage(JsonSerializer.Serialize(msg));
+		var data = Message.ToFramedMessage(JsonSerializer.Serialize(msg));
 		await _client.GetStream().WriteAsync(data);
 	}
 	
@@ -45,14 +44,17 @@ public class Client(string host, int port, string playerName)
 			var byteCount = await stream.ReadAsync(buffer);
 
 			var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
-			var msg = JsonSerializer.Deserialize<Message28Kill>(messageJson);
+			var msg = JsonSerializer.Deserialize<Message>(messageJson);
 
 			if (msg is not null)
 			{
 				switch (msg.Type)
 				{
-					case MessageType.LoginBack: _console.PlayerId = msg.PayLoad; break;
-					case MessageType.Chat: _console.ChatLines.Enqueue(msg); break;
+					case MessageType.LoginBack:
+						_console.PlayerId = msg.PayLoad; break;
+					case MessageType.PlayerUpdate:
+						_console.PlayerInstance = JsonSerializer.Deserialize<Player>(msg.PayLoad);
+						break;
 					case MessageType.Turn: case MessageType.Guess: case MessageType.Login: case MessageType.System: default:
 						_console.SystemMessages.Enqueue(msg); break;
 				}

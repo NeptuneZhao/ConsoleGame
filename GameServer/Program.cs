@@ -1,5 +1,4 @@
-﻿using GameServer.Game;
-using GameServer.Shared;
+﻿using GameServer.Shared;
 
 namespace GameServer;
 
@@ -12,7 +11,5 @@ public static class Program
 		var server = new Server(5000);
 		server.SetGame();
 		await server.StartAsync();
-		
-		
 	}
 }

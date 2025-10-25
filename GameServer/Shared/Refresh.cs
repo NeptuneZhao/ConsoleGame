@@ -1,18 +1,18 @@
 ﻿using System.Net.NetworkInformation;
 using System.Runtime.Versioning;
-using GameServer.Game.Project28Kill;
+using GameServer.Game;
 
 namespace GameServer.Shared;
 
 [SupportedOSPlatform("Windows")]
 public class Refresh(string address, string gameName, string playerName)
 {
-	public Queue<Message28Kill> ChatLines { get; } = new(1);
-	public Queue<Message28Kill> SystemMessages { get; } = new(1);
+	public Queue<Message> SystemMessages { get; } = new(1);
 	
-	public string PlayerId {private get; set; } = string.Empty;
+	public Player? PlayerInstance { get; set; }
+	public string PlayerId { private get; set; } = string.Empty;
 
-	private const int MaxChatLines = 10, MaxSystemMessages = 10;
+	private const int MaxSystemMessages = 10;
 	
 	public void Render()
 	{
@@ -37,54 +37,45 @@ public class Refresh(string address, string gameName, string playerName)
 		
 		SeparateLine();
 		
-		// 控制台操作提示
-		WriteColor(new Dictionary<string, ConsoleColor>
+		// 玩家状态
+		if (PlayerInstance is null)
 		{
-			{ "输入 /chat 或 /c <消息> 发送聊天消息", ConsoleColor.Gray },
-			{ "输入 /guess 或 /g <消息> 进行游戏", ConsoleColor.Gray }
-		});
-		
-		SeparateLine();
-		
-		// 聊天区
-		if (ChatLines.Count > MaxChatLines) ChatLines.Dequeue();
-		var chatLinesToShow = ChatLines.ToList();
-		
-		if (chatLinesToShow.Count == 0)
-			Console.WriteLine("<暂无聊天消息>");
+			WriteColor(new Dictionary<string, ConsoleColor>
+			{
+				{ "玩家状态: ", ConsoleColor.White },
+				{ "<未登录>\n", ConsoleColor.Red }
+			}, false);
+		}
 		else
 		{
-			foreach (var line in chatLinesToShow)
+			WriteColor(new Dictionary<string, ConsoleColor>
 			{
-				WriteColor(new Dictionary<string, ConsoleColor>
-				{
-					{ $"[{line.PlayerName}] ", ConsoleColor.Gray },
-					{ line.PayLoad + '\n', ConsoleColor.White }
-				}, false);
-			}
+				{ "玩家状态", ConsoleColor.White },
+				{ $"生命值:\t{PlayerInstance.Health}\n", ConsoleColor.Yellow },
+				{ $"伤害:\t{PlayerInstance.Damage:.2f}\n", ConsoleColor.Yellow },
+				{ $"金钱:\t{PlayerInstance.Money:.2f}\n", ConsoleColor.Yellow },
+			}, false);
 		}
-
+		
 		SeparateLine();
 		
 		// 系统提示
 		if (SystemMessages.Count > MaxSystemMessages) SystemMessages.Dequeue();
 		var systemMessagesToShow = SystemMessages.ToList();
-		if (systemMessagesToShow.Count == 0)
-			Console.WriteLine("<暂无系统消息>");
-		else
+		foreach (var line in systemMessagesToShow)
 		{
-			foreach (var line in systemMessagesToShow)
+			WriteColor(new Dictionary<string, ConsoleColor>
 			{
-				WriteColor(new Dictionary<string, ConsoleColor>
-				{
-					{ "[", ConsoleColor.White },
-					{ line.GetType().ToString(), ConsoleColor.Blue },
-					{ "]\t", ConsoleColor.White },
-					{ line.PayLoad + '\n', ConsoleColor.White }
-				}, false);
-			}
+				{ "[", ConsoleColor.White }, 
+				{ line.GetType().ToString(), ConsoleColor.Blue }, 
+				{ "]\t", ConsoleColor.White }, 
+				{ line.PayLoad + '\n', ConsoleColor.White }
+			}, false);
 		}
-
+		
+		for (var i = MaxSystemMessages; i > systemMessagesToShow.Count; i--)
+			Console.WriteLine();
+		
 		SeparateLine();
 	}
 

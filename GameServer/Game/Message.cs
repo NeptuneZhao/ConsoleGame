@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using GameServer.Shared;
 
-namespace GameServer.Game.Project28Kill;
+namespace GameServer.Game;
 
-public class Message28Kill(MessageType type, KillAction action, string payLoad = "")
+public class Message(MessageType type, KillAction action, string payLoad = "")
 {
 	public MessageType Type { get; } = type;
 	public readonly string PayLoad = payLoad;

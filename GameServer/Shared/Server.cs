@@ -2,8 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-
-using GameServer.Game.Project28Kill;
+using GameServer.Game;
 
 namespace GameServer.Shared;
 
@@ -35,21 +34,21 @@ public class Server(int port)
         await tcs.Task;
     }
     
-    public async Task BroadcastAsync(Message28Kill message)
+    public async Task BroadcastAsync(Message message)
     {
         var messageJson = JsonSerializer.Serialize(message);
-        var messageBytes = Message28Kill.ToFramedMessage(messageJson);
+        var messageBytes = Message.ToFramedMessage(messageJson);
         
         foreach (var stream in _clients.Values.Select(client => client.GetStream()))
             await stream.WriteAsync(messageBytes);
     }
     
-    public async Task SendAsync(string clientId, Message28Kill msg)
+    public async Task SendAsync(string clientId, Message msg)
     {
         if (_clients.TryGetValue(clientId, out var client))
         {
             var messageJson = JsonSerializer.Serialize(msg);
-            var messageBytes = Message28Kill.ToFramedMessage(messageJson);
+            var messageBytes = Message.ToFramedMessage(messageJson);
             await client.GetStream().WriteAsync(messageBytes);
         }
     }
@@ -92,14 +91,8 @@ public class Server(int port)
         {
             while (true)
             {
-                var message = await ReadAsync<Message28Kill>(client);
+                var message = await ReadAsync<Message>(client);
                 if (message is null) break;
-
-                if (message.Type == MessageType.Chat)
-                {
-                    await BroadcastAsync(message);
-                    continue;
-                }
 
                 _game?.OnMessageReceived(clientId, message);
             }

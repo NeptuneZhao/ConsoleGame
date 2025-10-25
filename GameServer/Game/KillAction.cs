@@ -1,4 +1,4 @@
-﻿namespace GameServer.Game.Project28Kill;
+﻿namespace GameServer.Game;
 
 
 /// <summary>
