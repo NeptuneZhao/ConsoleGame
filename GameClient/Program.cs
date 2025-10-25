@@ -10,6 +10,8 @@ public static class Program
 {
 	public static async Task Main()
 	{
+		Console.Title = "二八杀客户端";
+		
 		var confirmation = "N";
 		var name = "Anonymous";
 

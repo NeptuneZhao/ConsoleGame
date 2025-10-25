@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
-using GameServer.Game.GuessNumber;
+
 using GameServer.Game.Project28Kill;
 
 namespace GameServer.Shared;
@@ -12,23 +12,15 @@ public class Server(int port)
     private readonly TcpListener _listener = new(IPAddress.Any, port);
     private readonly Dictionary<string, TcpClient> _clients = new();
 
-    private IGame? _game;
+    private Project28Kill? _game;
 
-    public void SetGame(GameType gameType)
-    {
-        _game = gameType switch
-        {
-            GameType.GuessNumber => new GuessNumber(this),
-            GameType.Project28Kill => new Project28Kill(this),
-            _ => throw new NotSupportedException("这些游戏还没实现。")
-        };
-    }
+    public void SetGame() => _game = new Project28Kill(this);
     
     public async Task StartAsync()
     {
         _listener.Start();
         
-        Console.WriteLine($"Listening on {_listener.LocalEndpoint}");
+        Console.WriteLine($"启动监听，在{_listener.LocalEndpoint}。");
 
         while (_clients.Count < 4)
         {
@@ -43,21 +35,21 @@ public class Server(int port)
         await tcs.Task;
     }
     
-    public async Task BroadcastAsync(IMessage message)
+    public async Task BroadcastAsync(Message28Kill message)
     {
         var messageJson = JsonSerializer.Serialize(message);
-        var messageBytes = IMessage.ToFramedMessage(messageJson);
+        var messageBytes = Message28Kill.ToFramedMessage(messageJson);
         
         foreach (var stream in _clients.Values.Select(client => client.GetStream()))
             await stream.WriteAsync(messageBytes);
     }
     
-    public async Task SendAsync(string clientId, IMessage messageGuess)
+    public async Task SendAsync(string clientId, Message28Kill msg)
     {
         if (_clients.TryGetValue(clientId, out var client))
         {
-            var messageJson = JsonSerializer.Serialize(messageGuess);
-            var messageBytes = IMessage.ToFramedMessage(messageJson);
+            var messageJson = JsonSerializer.Serialize(msg);
+            var messageBytes = Message28Kill.ToFramedMessage(messageJson);
             await client.GetStream().WriteAsync(messageBytes);
         }
     }
@@ -68,7 +60,7 @@ public class Server(int port)
     /// <param name="client">字节流上的客户端</param>
     /// <returns>反序列化后 Message 类</returns>
     /// <exception cref="Exception"></exception>
-    private static async Task<IMessage?> ReadAsync(TcpClient client)
+    private static async Task<T?> ReadAsync<T>(TcpClient client)
     {
         var buffer = new byte[4];
         var stream = client.GetStream();
@@ -78,7 +70,7 @@ public class Server(int port)
         switch (byteCount)
         { 
             case 4: break;
-            default: throw new SocketException(0, $"应该读取 4 个字节, 但实际读取了 {byteCount.ToString()} 个字节.");
+            default: throw new SocketException(0, $"应该读取 4 个字节，但实际读取了 {byteCount.ToString()} 个字节。");
         }
 
         var msgLength = BitConverter.ToInt32(buffer);
@@ -86,11 +78,11 @@ public class Server(int port)
         buffer = new byte[msgLength];
         byteCount = await stream.ReadAsync(buffer);
         
-        if (byteCount == 0) return null;
-        if (byteCount != msgLength) throw new SocketException(0, "读取的消息字节数与消息长度头不符.");
+        if (byteCount == 0) throw new SocketException(0, "客户端已断开连接。");
+        if (byteCount != msgLength) throw new SocketException(0, "读取的消息字节数与消息长度头不符。");
         
         var messageJson = Encoding.UTF8.GetString(buffer, 0, byteCount);
-        return JsonSerializer.Deserialize<IMessage?>(messageJson);
+        return JsonSerializer.Deserialize<T>(messageJson);
             
     }
     
@@ -100,10 +92,10 @@ public class Server(int port)
         {
             while (true)
             {
-                var message = await ReadAsync(client);
+                var message = await ReadAsync<Message28Kill>(client);
                 if (message is null) break;
 
-                if (message.GetType() == MessageType.Chat)
+                if (message.Type == MessageType.Chat)
                 {
                     await BroadcastAsync(message);
                     continue;
@@ -114,13 +106,13 @@ public class Server(int port)
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error with client {clientId}: {ex.Message}");
+            Console.WriteLine($"客户端 {clientId} 出现异常：{ex.Message}。");
         }
         finally
         {
             client.Close();
             _clients.Remove(clientId);
-            Console.WriteLine($"Client {clientId} disconnected.");
+            Console.WriteLine($"客户端 {clientId} 已断开连接。");
         }
     }
 }

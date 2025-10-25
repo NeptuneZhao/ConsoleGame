@@ -6,6 +6,7 @@
 /// </summary>
 public enum KillAction
 {
+	System,
 	Skip,
 	Attack,
 	Defense,

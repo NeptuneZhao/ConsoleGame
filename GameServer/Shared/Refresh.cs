@@ -1,14 +1,14 @@
 ﻿using System.Net.NetworkInformation;
 using System.Runtime.Versioning;
-using GameServer.Game.GuessNumber;
+using GameServer.Game.Project28Kill;
 
 namespace GameServer.Shared;
 
 [SupportedOSPlatform("Windows")]
 public class Refresh(string address, string gameName, string playerName)
 {
-	public Queue<MessageGuess> ChatLines { get; } = new(1);
-	public Queue<MessageGuess> SystemMessages { get; } = new(1);
+	public Queue<Message28Kill> ChatLines { get; } = new(1);
+	public Queue<Message28Kill> SystemMessages { get; } = new(1);
 	
 	public string PlayerId {private get; set; } = string.Empty;
 
@@ -49,32 +49,42 @@ public class Refresh(string address, string gameName, string playerName)
 		// 聊天区
 		if (ChatLines.Count > MaxChatLines) ChatLines.Dequeue();
 		var chatLinesToShow = ChatLines.ToList();
-		if (chatLinesToShow.Count == 0) chatLinesToShow.Add(new MessageGuess(MessageType.Chat, "<暂无聊天记录>"));
-		foreach (var line in chatLinesToShow)
-		{
-			WriteColor(new Dictionary<string, ConsoleColor>
-			{
-				{ $"[{line.PlayerName}] ", ConsoleColor.Gray }, { line.PayLoad + '\n', ConsoleColor.White }
-			}, false);
-		}
 		
+		if (chatLinesToShow.Count == 0)
+			Console.WriteLine("<暂无聊天消息>");
+		else
+		{
+			foreach (var line in chatLinesToShow)
+			{
+				WriteColor(new Dictionary<string, ConsoleColor>
+				{
+					{ $"[{line.PlayerName}] ", ConsoleColor.Gray },
+					{ line.PayLoad + '\n', ConsoleColor.White }
+				}, false);
+			}
+		}
+
 		SeparateLine();
 		
 		// 系统提示
 		if (SystemMessages.Count > MaxSystemMessages) SystemMessages.Dequeue();
 		var systemMessagesToShow = SystemMessages.ToList();
-		if (systemMessagesToShow.Count == 0) systemMessagesToShow.Add(new MessageGuess(MessageType.System, "<暂无系统消息>"));
-		foreach (var line in systemMessagesToShow)
+		if (systemMessagesToShow.Count == 0)
+			Console.WriteLine("<暂无系统消息>");
+		else
 		{
-			WriteColor(new Dictionary<string, ConsoleColor>
+			foreach (var line in systemMessagesToShow)
 			{
-				{"[", ConsoleColor.White},
-				{ line.Type.ToString(), ConsoleColor.Blue },
-				{"]\t", ConsoleColor.White },
-				{ line.PayLoad + '\n', ConsoleColor.White }
-			}, false);
+				WriteColor(new Dictionary<string, ConsoleColor>
+				{
+					{ "[", ConsoleColor.White },
+					{ line.GetType().ToString(), ConsoleColor.Blue },
+					{ "]\t", ConsoleColor.White },
+					{ line.PayLoad + '\n', ConsoleColor.White }
+				}, false);
+			}
 		}
-		
+
 		SeparateLine();
 	}
 

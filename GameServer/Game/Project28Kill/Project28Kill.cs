@@ -3,7 +3,7 @@ using GameServer.Shared;
 
 namespace GameServer.Game.Project28Kill;
 
-public class Project28Kill(Server server) : IGame
+public class Project28Kill(Server server)
 {
 	private readonly Dictionary<string, string> _playersReflection = new(4);
 	private readonly List<Player> _players = new(4);
@@ -19,7 +19,7 @@ public class Project28Kill(Server server) : IGame
 		Thread.Sleep(1000);
 		GameStarted = true;
 		Console.WriteLine("游戏开始.");
-		server.Broadcast(MessageType.System, "游戏开始了! 请猜一个 1 到 100 之间的数字.");
+		_ = server.BroadcastAsync(new Message28Kill(MessageType.System, KillAction.System, "游戏开始了! 请猜一个 1 到 100 之间的数字."));
 		PromptNextPlayer();
 	}
 
@@ -35,25 +35,24 @@ public class Project28Kill(Server server) : IGame
 		}
 		
 		// TODO: 修改提示信息
-		_ = server.BroadcastAsync(new MessageGuess(MessageType.System, $"轮到玩家 {currentPlayer} 猜."));
-		_ = server.SendAsync(currentId, new MessageGuess(MessageType.Turn, "现在是你的回合, 请输入一个 1 到 100 的整数."));
+		_ = server.BroadcastAsync(new Message28Kill(MessageType.System, KillAction.System,  $"轮到玩家 {currentPlayer} 猜."));
+		_ = server.SendAsync(currentId, new Message28Kill(MessageType.Turn, KillAction.System, "现在是你的回合, 请输入一个 1 到 100 的整数."));
 	}
 
-	public void OnMessageReceived(string playerId, MessageGuess messageGuess)
+	public void OnMessageReceived(string playerId, Message28Kill message)
 	{
-		if (messageGuess.Type == MessageType.Login)
+		if (message.Type == MessageType.Login)
 		{
 			lock (_turnLock)
 			{
-				_playersReflection[playerId] = messageGuess.PayLoad;
-				_players.Add(new Player(messageGuess.PayLoad));
+				_playersReflection[playerId] = message.PayLoad;
+				_players.Add(new Player(message.PayLoad));
 			}
 
-			Console.WriteLine($"玩家 {messageGuess.PayLoad} 加入了游戏! ({_playersReflection.Count}/4)!");
+			Console.WriteLine($"玩家 {message.PayLoad} 加入了游戏! ({_playersReflection.Count}/4)!");
 			
-			_ = server.SendAsync(playerId, new MessageGuess(MessageType.LoginBack, playerId));
-			
-			server.Broadcast(MessageType.System, $"玩家 {messageGuess.PayLoad} 加入了游戏! ({_playersReflection.Count}/4)");
+			_ = server.SendAsync(playerId, new Message28Kill(MessageType.LoginBack, KillAction.System, playerId));
+			_ = server.BroadcastAsync(new Message28Kill(MessageType.System, KillAction.System, $"玩家 {message.PayLoad} 加入了游戏! ({_playersReflection.Count}/4)"));
 
 			lock (_turnLock)
 			{
@@ -73,15 +72,14 @@ public class Project28Kill(Server server) : IGame
 
 		if (playerId != currentId)
 		{
-			_ = server.SendAsync(playerId, new MessageGuess(MessageType.System, "现在不是你的回合, 等一会儿。"));
+			_ = server.SendAsync(playerId, new Message28Kill(MessageType.System, KillAction.System, "现在不是你的回合, 等一会儿。"));
 			return;
 		}
-		
-		
 	}
 
-	public void Update()
+	public void EndGame()
 	{
-		
+		_ = server.BroadcastAsync(new Message28Kill(MessageType.System, KillAction.System, "游戏结束!"));
+		GameEnded?.Invoke(this, EventArgs.Empty);
 	}
 }
