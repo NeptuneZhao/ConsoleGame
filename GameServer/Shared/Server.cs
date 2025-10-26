@@ -11,9 +11,9 @@ public class Server(int port)
     private readonly TcpListener _listener = new(IPAddress.Any, port);
     private readonly Dictionary<string, TcpClient> _clients = new();
 
-    private Project28Kill? _game;
+    private KillServer? _game;
 
-    public void SetGame() => _game = new Project28Kill(this);
+    public void SetGame() => _game = new KillServer(this);
     
     public async Task StartAsync()
     {

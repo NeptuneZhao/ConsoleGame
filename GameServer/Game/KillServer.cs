@@ -3,7 +3,7 @@ using GameServer.Shared;
 
 namespace GameServer.Game;
 
-public class Project28Kill(Server server)
+public class KillServer(Server server)
 {
 	private readonly Dictionary<string, string> _playerIdToName = new(4);
 	private readonly Dictionary<string, Player> _playerIdToClass = new(4);

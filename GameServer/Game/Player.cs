@@ -1,4 +1,6 @@
-﻿namespace GameServer.Game;
+﻿using System.Text;
+
+namespace GameServer.Game;
 
 public class Player
 {
@@ -10,13 +12,13 @@ public class Player
 	public int LocationModification = 0;
 
 	public int ActionPoints = 1;
-	
+
 	public double Health = 10.0;
 	public double RegenerateHealth = 1.0;
-	
+
 	public double Damage = 1.0;
 	public int AttackRange = 1;
-	
+
 	public int Money = 10;
 
 	public Player(string playerName)
