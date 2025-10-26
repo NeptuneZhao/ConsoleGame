@@ -3,11 +3,10 @@ using GameServer.Shared;
 
 namespace GameServer.Game;
 
-public class Message(MessageType type, KillAction action, string payLoad = "")
+public class Message(MessageType type, string payLoad = "")
 {
 	public MessageType Type { get; } = type;
 	public readonly string PayLoad = payLoad;
-	public KillAction Action { get; } = action;
 	public string PlayerName = string.Empty;
 	
 	public static byte[] ToFramedMessage(string msg)

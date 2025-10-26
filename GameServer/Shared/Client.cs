@@ -55,7 +55,7 @@ public class Client(string host, int port, string playerName)
 					case MessageType.PlayerUpdate:
 						_console.PlayerInstance = JsonSerializer.Deserialize<Player>(msg.PayLoad);
 						break;
-					case MessageType.Turn: case MessageType.Guess: case MessageType.Login: case MessageType.System: default:
+					case MessageType.Turn: case MessageType.Login: case MessageType.System: default:
 						_console.SystemMessages.Enqueue(msg); break;
 				}
 			}

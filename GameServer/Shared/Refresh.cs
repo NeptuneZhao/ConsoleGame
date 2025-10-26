@@ -1,4 +1,5 @@
-﻿using System.Net.NetworkInformation;
+﻿
+using System.Net.NetworkInformation;
 using System.Runtime.Versioning;
 using GameServer.Game;
 
@@ -50,10 +51,20 @@ public class Refresh(string address, string gameName, string playerName)
 		{
 			WriteColor(new Dictionary<string, ConsoleColor>
 			{
-				{ "玩家状态", ConsoleColor.White },
-				{ $"生命值:\t{PlayerInstance.Health}\n", ConsoleColor.Yellow },
-				{ $"伤害:\t{PlayerInstance.Damage:.2f}\n", ConsoleColor.Yellow },
-				{ $"金钱:\t{PlayerInstance.Money:.2f}\n", ConsoleColor.Yellow },
+				{ "玩家状态\n行动点数:\t", ConsoleColor.White},
+				{ PlayerInstance.ActionPoints.ToString(), ConsoleColor.Cyan},
+				{ "\t距离修正:\t", ConsoleColor.White },
+				{ PlayerInstance.LocationModification.ToString(), ConsoleColor.Blue },
+				{ "\n生命值:\t", ConsoleColor.White },
+				{ PlayerInstance.Health.ToString(".2f"), ConsoleColor.Green },
+				{ "\t回血量:\t", ConsoleColor.White },
+				{ PlayerInstance.RegenerateHealth.ToString(".2f"), ConsoleColor.DarkGreen },
+				{ "\n伤害:\t", ConsoleColor.White },
+				{ PlayerInstance.Damage.ToString(".2f"), ConsoleColor.DarkYellow },
+				{ "\t攻击范围:\t", ConsoleColor.White },
+				{ PlayerInstance.AttackRange.ToString(), ConsoleColor.Magenta },
+				{ "\n金钱:\t", ConsoleColor.White },
+				{ PlayerInstance.Money.ToString() + '\n', ConsoleColor.Yellow}
 			}, false);
 		}
 		
